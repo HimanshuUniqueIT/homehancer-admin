@@ -25,7 +25,6 @@
         <div class="card kpi"><span class="kpi-label">Razorpay fees + GST</span><span class="kpi-value">${inr(fees)}</span><span class="kpi-delta muted" style="font-weight:400">about 2% + 18% GST on fee</span></div>
         <div class="card kpi"><span class="kpi-label">Success rate</span><span class="kpi-value">${successRate}%</span><span class="kpi-delta ${failed ? 'down' : 'up'}">${failed} failed payments</span></div>
       </div>
-      <section class="card"><div class="card-head"><h2>Why payments fail</h2><span class="muted small">${failed} failed attempts by reason. Click any payment below for its full journey.</span></div><div class="card-body" id="whyFail"></div></section>
       <section class="card" id="tbl"></section>
       <section class="card"><div class="card-head"><h2>Settlements</h2><span class="muted small">Razorpay pays out captured amounts T+2 days. Compare with your bank statement.</span></div>
         <div class="table-wrap"><table><thead><tr><th>Captured on</th><th class="right">Payments</th><th class="right">Gross</th><th class="right">Fees + GST</th><th class="right">Refunds</th><th class="right">Net settled</th><th>Expected</th><th>Status</th><th>UTR</th></tr></thead><tbody>
@@ -48,7 +47,6 @@
       ],
       onRow: x => { location.href = '/payments/' + x.id; }
     });
-    HH.hbars(document.getElementById('whyFail'), window.HH_FAILURES.map(f => ({ label: f.description, value: db.transactions.filter(x => x.error?.reason === f.reason).length })).filter(r => r.value).sort((p, q) => q.value - p.value), v => v + (v === 1 ? ' attempt' : ' attempts'));
     document.getElementById('exportBtn').onclick = () => HH.downloadCSV('payments.csv', t.visible, [['Payment ID', x => x.id], ['Order ID', x => x.orderId], ['Booking', x => x.bookingId], ['Customer', x => customer(x.customerId).name], ['Method', x => x.method], ['Amount', x => x.amount], ['Fee', x => x.fee], ['GST on fee', x => x.tax], ['Refunded', x => x.refunds.reduce((s, r) => s + r.amount, 0)], ['Status', x => x.status], ['Failure reason', x => x.error?.description || ''], ['Created', x => x.createdAt]]);
   }
 
