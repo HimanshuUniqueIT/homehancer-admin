@@ -1,0 +1,11 @@
+{
+  "name": "homehancer-admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HomeHancer admin panel prototype with Razorpay integration",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": { "node": ">=18" }
+}
