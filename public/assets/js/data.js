@@ -86,6 +86,23 @@
 
   const statuses = ['completed', 'completed', 'completed', 'completed', 'completed', 'completed', 'completed', 'cancelled'];
   const methods = ['upi', 'upi', 'upi', 'card', 'netbanking', 'wallet'];
+  // Failure reasons follow the error fields Razorpay returns: code, source, step, reason.
+  const FAILURES = [
+    { code: 'BAD_REQUEST_ERROR', source: 'customer', step: 'payment_authentication', reason: 'payment_cancelled', description: 'Customer closed the checkout before paying', advice: 'Send the payment link again or call the customer.', methods: ['upi', 'card', 'netbanking', 'wallet'] },
+    { code: 'BAD_REQUEST_ERROR', source: 'customer', step: 'payment_authentication', reason: 'payment_timeout', description: 'Customer did not approve the request in time', advice: 'Ask the customer to retry and approve the request within the time limit.', methods: ['upi', 'netbanking'] },
+    { code: 'BAD_REQUEST_ERROR', source: 'customer', step: 'payment_authorization', reason: 'incorrect_pin', description: 'Wrong UPI PIN entered', advice: 'Ask the customer to retry with the correct PIN or use another UPI app.', methods: ['upi'] },
+    { code: 'BAD_REQUEST_ERROR', source: 'customer', step: 'payment_authorization', reason: 'insufficient_funds', description: 'Not enough balance in the account', advice: 'Ask the customer to use another account or pay by another method.', methods: ['upi', 'card', 'netbanking', 'wallet'] },
+    { code: 'BAD_REQUEST_ERROR', source: 'customer', step: 'payment_authentication', reason: 'incorrect_otp', description: 'Wrong OTP entered on the bank page', advice: 'Ask the customer to retry and enter the latest OTP.', methods: ['card'] },
+    { code: 'GATEWAY_ERROR', source: 'issuer', step: 'payment_authorization', reason: 'card_declined', description: 'Card declined by the issuing bank', advice: 'Ask the customer to contact the bank or use another card.', methods: ['card'] },
+    { code: 'GATEWAY_ERROR', source: 'bank', step: 'payment_authorization', reason: 'bank_technical_error', description: 'Bank servers were not responding', advice: 'No customer error. Ask the customer to retry in a few minutes.', methods: ['upi', 'card', 'netbanking'] },
+    { code: 'SERVER_ERROR', source: 'gateway', step: 'payment_initiation', reason: 'gateway_technical_error', description: 'Temporary error at the payment gateway', advice: 'No customer error. Retry, and check Razorpay status if it continues.', methods: ['upi', 'card', 'netbanking', 'wallet'] }
+  ];
+  window.HH_FAILURES = FAILURES;
+  const failureFor = (method) => { const { methods: _, ...e } = pick(FAILURES.filter(f => f.methods.includes(method))); return e; };
+  const instrumentFor = (cust, method) => method === 'upi' ? cust.name.split(' ')[0].toLowerCase() + int(10, 99) + pick(['@okhdfcbank', '@oksbi', '@ybl', '@paytm', '@okicici'])
+    : method === 'card' ? pick(['Visa', 'Mastercard', 'RuPay']) + ' •••• ' + int(1000, 9999) + ' · ' + pick(['HDFC Bank', 'SBI', 'ICICI Bank', 'Axis Bank'])
+    : method === 'netbanking' ? pick(['HDFC Bank', 'State Bank of India', 'ICICI Bank', 'Kotak Bank', 'Bank of Baroda'])
+    : pick(['Paytm Wallet', 'Mobikwik', 'Freecharge']);
   const bookings = [], transactions = [];
   for (let i = 0; i < 150; i++) {
     const n = 150 - i;
@@ -128,10 +145,18 @@
       source: pick(['Android app', 'Android app', 'iOS app', 'Website'])
     };
     bookings.push(b);
+    const tryAttempt = (at, method, error, orderId, ip) => ({ id: id('pay'), orderId, bookingId: bId, customerId: cust.id, amount: total, method, instrument: instrumentFor(cust, method), device: b.source, ip, status: 'failed', fee: 0, tax: 0, createdAt: at, source: 'test', refunds: [], error });
+    if (payMode === 'online' && payStatus === 'pending' && rnd() < .15) {
+      const m = pick(methods);
+      transactions.push(tryAttempt(created, m, failureFor(m), id('order'), `103.${int(10, 250)}.${int(1, 250)}.${int(1, 250)}`));
+    }
     if (payMode === 'online' && payStatus !== 'pending') {
       const fee = Math.round(total * .02 * 100) / 100;
+      const method = pick(methods), orderId = id('order'), ip = `103.${int(10, 250)}.${int(1, 250)}.${int(1, 250)}`;
+      const earlier = payStatus === 'failed' ? int(0, 1) : rnd() < .12 ? 1 : 0;
+      for (let i = earlier; i > 0; i--) { const m = pick(methods); transactions.push(tryAttempt(new Date(new Date(created).getTime() - i * int(120, 420) * 1000).toISOString(), m, failureFor(m), orderId, ip)); }
       const tx = {
-        id: id('pay'), orderId: id('order'), bookingId: bId, customerId: cust.id, amount: total, method: pick(methods),
+        id: id('pay'), orderId, bookingId: bId, customerId: cust.id, amount: total, method, instrument: instrumentFor(cust, method), device: b.source, ip, ...(payStatus === 'failed' ? { error: failureFor(method) } : {}),
         status: payStatus === 'failed' ? 'failed' : payStatus === 'refunded' ? 'refunded' : 'captured', fee: payStatus === 'failed' ? 0 : fee,
         tax: payStatus === 'failed' ? 0 : Math.round(fee * .18 * 100) / 100, createdAt: created, source: 'test', refunds: []
       };
@@ -272,5 +297,5 @@
     { at: daysAgo(1, 18), text: 'Weekly payouts ready: ' + payouts.filter(p => p.status === 'pending').length + ' partners', href: '/payouts', kind: 'info' }
   ];
 
-  window.HH_SEED = { version: 4, categories, services, zones, customers, partners, bookings, transactions, payouts, coupons, reviews, tickets, blogs, pages, banners, templates, admins, roles, modules, audit, settings, notifications, webhooksLocal: [] };
+  window.HH_SEED = { version: 5, categories, services, zones, customers, partners, bookings, transactions, payouts, coupons, reviews, tickets, blogs, pages, banners, templates, admins, roles, modules, audit, settings, notifications, webhooksLocal: [] };
 })();

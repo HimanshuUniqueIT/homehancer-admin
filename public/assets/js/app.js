@@ -174,7 +174,7 @@
         ...db.bookings.filter(b => b.id.toLowerCase().includes(q) || customer(b.customerId).name.toLowerCase().includes(q)).slice(0, 5).map(b => [`/bookings/${b.id}`, `<b>${b.id}</b> · ${esc(service(b.serviceId).name)}`, `${esc(customer(b.customerId).name)} · ${date(b.slot)}`]),
         ...db.customers.filter(c => (c.name + c.phone + c.email).toLowerCase().includes(q)).slice(0, 4).map(c => [`/customers?id=${c.id}`, `<b>${esc(c.name)}</b>`, `Customer · ${esc(c.phone)}`]),
         ...db.partners.filter(p => (p.name + p.phone).toLowerCase().includes(q)).slice(0, 4).map(p => [`/partners?id=${p.id}`, `<b>${esc(p.name)}</b>`, `Partner · ${p.skills.map(s => category(s).name).join(', ')}`]),
-        ...db.transactions.filter(t => t.id.toLowerCase().includes(q) || t.orderId.toLowerCase().includes(q)).slice(0, 3).map(t => [`/payments?id=${t.id}`, `<b class="mono">${t.id}</b>`, `Payment · ${inr(t.amount)}`])
+        ...db.transactions.filter(t => t.id.toLowerCase().includes(q) || t.orderId.toLowerCase().includes(q)).slice(0, 3).map(t => [`/payments/${t.id}`, `<b class="mono">${t.id}</b>`, `Payment · ${inr(t.amount)}`])
       ];
       out.innerHTML = hits.length ? hits.map(([href, a, b]) => `<a href="${href}">${a}<div class="cell-sub">${b}</div></a>`).join('') : '<div class="empty">No matches</div>';
       out.classList.remove('hidden');
@@ -384,15 +384,61 @@
       document.head.appendChild(s);
     });
   }
-  function recordPayment(b, { paymentId, orderId, method, source, status = 'captured', amount }) {
+  // Steps a payment went through, oldest first. Real Razorpay payments use the events recorded during checkout;
+  // sample and test payments get typical step timings.
+  const isSettled = (x) => x.status !== 'failed' && x.source !== 'razorpay' && new Date(x.createdAt).getTime() + 2 * 864e5 < Date.now();
+  function paymentJourney(x) {
+    const b = db.bookings.find(k => k.id === x.bookingId), steps = [];
+    const start = new Date(x.createdAt).getTime();
+    let h = 0; for (const ch of x.id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    let t = start - 40000 - h % 30000;
+    const add = (gap, actor, title, detail, tone) => { t += gap * 1000; steps.push({ at: new Date(t).toISOString(), actor, title, detail, tone }); };
+    const AUTH = { upi: 'Customer approved with UPI PIN', card: 'Customer completed the bank OTP check', netbanking: 'Customer signed in to the bank', wallet: 'Customer approved from the wallet' };
+    if (x.events) steps.push(...x.events);
+    else {
+      add(0, x.device === 'Admin panel' ? 'HomeHancer' : 'Customer', x.device === 'Admin panel' ? `Admin started collection of ${inr(x.amount)}` : `Customer tapped Pay ${inr(x.amount)}`, `${x.device || b?.source || 'App'} · Booking ${x.bookingId}`);
+      add(1, 'HomeHancer', 'Razorpay order created', x.orderId);
+      add(1, 'Razorpay', 'Checkout opened on the customer\'s screen');
+      add(6 + h % 15, 'Customer', `Chose ${x.method === 'upi' ? 'UPI' : x.method === 'card' ? 'card' : x.method === 'netbanking' ? 'netbanking' : 'wallet'}`, x.instrument);
+      if (x.status === 'failed') {
+        const e = x.error || {};
+        if (e.step !== 'payment_initiation' && e.reason !== 'payment_cancelled') add(10 + h % 20, 'Bank', 'Sent to the bank for approval');
+        add(5 + h % 25, e.source === 'customer' ? 'Customer' : e.source === 'gateway' ? 'Razorpay' : 'Bank', 'Payment failed: ' + (e.description || 'Reason not returned'), e.reason ? `${e.code} · ${e.reason} · step ${e.step}` : '', 'bad');
+        add(2, 'Razorpay', 'Webhook received: payment.failed', 'Booking kept unpaid');
+        add(3, 'HomeHancer', 'Customer told the payment failed', 'Retry option shown in the app');
+      } else {
+        add(10 + h % 20, 'Customer', AUTH[x.method] || 'Customer approved the payment');
+        add(2 + h % 4, 'Bank', 'Payment authorised by the bank');
+        add(1, 'Razorpay', `Payment captured: ${inr(x.amount)}`, x.id, 'good');
+        add(1, 'HomeHancer', 'Payment signature verified');
+        add(2, 'Razorpay', 'Webhook received: payment.captured');
+        add(1, 'HomeHancer', 'Booking marked as paid', 'Receipt sent to the customer by SMS');
+      }
+    }
+    const next = db.transactions.filter(o => o.orderId === x.orderId && o.createdAt > x.createdAt).sort((p, q) => p.createdAt.localeCompare(q.createdAt))[0];
+    if (next) steps.push({ at: next.createdAt, actor: 'Customer', title: 'Customer tried again', detail: `${next.id} · ${next.status === 'failed' ? 'failed too' : 'succeeded'}` });
+    if (x.status !== 'failed') {
+      const due = new Date(start + 2 * 864e5);
+      const net = x.amount - x.fee - x.tax - x.refunds.filter(r => new Date(r.at) <= due).reduce((s, r) => s + r.amount, 0);
+      if (isSettled(x)) steps.push({ at: due.toISOString(), actor: 'Razorpay', title: `Settled to your bank: ${inr(net, 2)}`, detail: `After ${inr(x.fee + x.tax, 2)} Razorpay fee and GST${net < x.amount - x.fee - x.tax ? ' and refunds' : ''} · UTR SETL${x.createdAt.slice(0, 10).replace(/-/g, '')}`, tone: 'good' });
+      else steps.push({ at: due.toISOString(), actor: 'Razorpay', title: 'Settlement expected', detail: x.source === 'razorpay' ? 'Confirm in the Razorpay Dashboard' : `${inr(x.amount - x.fee - x.tax, 2)} after fee and GST`, tone: 'pending' });
+    }
+    for (const r of x.refunds) {
+      steps.push({ at: r.at, actor: 'HomeHancer', title: `Refund started: ${inr(r.amount, 2)}`, detail: `${r.id}${r.reason ? ' · ' + r.reason : ''}` });
+      steps.push({ at: r.at, actor: 'Razorpay', title: r.status === 'processed' ? 'Refund processed' : 'Refund ' + r.status, detail: r.speed === 'optimum' ? 'Instant refund' : 'Reaches the customer in 5–7 working days', tone: 'good' });
+    }
+    return steps.sort((p, q) => p.at.localeCompare(q.at));
+  }
+
+  function recordPayment(b, { paymentId, orderId, method, source, status = 'captured', amount, instrument, error, events }) {
     const fee = Math.round(amount * .02 * 100) / 100;
-    db.transactions.unshift({ id: paymentId, orderId, bookingId: b.id, customerId: b.customerId, amount, method, status, fee: status === 'failed' ? 0 : fee, tax: status === 'failed' ? 0 : Math.round(fee * .18 * 100) / 100, createdAt: new Date().toISOString(), source, refunds: [] });
+    db.transactions.unshift({ id: paymentId, orderId, bookingId: b.id, customerId: b.customerId, amount, method, status, fee: status === 'failed' ? 0 : fee, tax: status === 'failed' ? 0 : Math.round(fee * .18 * 100) / 100, createdAt: new Date().toISOString(), source, refunds: [], device: 'Admin panel', ...(instrument ? { instrument } : {}), ...(error ? { error } : {}), ...(events ? { events } : {}) });
     if (status === 'captured') {
       b.payStatus = 'paid'; if (b.payMode !== 'online') b.payMode = 'online';
       b.timeline.push({ at: new Date().toISOString(), text: `Payment received ${inr(amount)} via Razorpay (${method.toUpperCase()}) · ${paymentId}`, by: source === 'razorpay' ? 'razorpay' : 'test checkout' });
     } else {
       b.payStatus = 'failed';
-      b.timeline.push({ at: new Date().toISOString(), text: `Payment failed via Razorpay · ${paymentId}`, by: source === 'razorpay' ? 'razorpay' : 'test checkout' });
+      b.timeline.push({ at: new Date().toISOString(), text: `Payment failed via Razorpay · ${error?.description || 'reason not returned'} · ${paymentId}`, by: source === 'razorpay' ? 'razorpay' : 'test checkout' });
     }
     save();
   }
@@ -407,7 +453,11 @@
 
     if (keys?.keyId && keys.hasSecret) {
       try {
+        const events = [];
+        const mark = (actor, title, detail, tone) => events.push({ at: new Date().toISOString(), actor, title, detail, tone });
+        mark('HomeHancer', `Payment started: ${inr(amount)}`, `Admin panel · Booking ${b.id}`);
         const { order, keyId, checkout } = await api('/api/razorpay/orders', { method: 'POST', body: { amount: Math.round(amount * 100), receipt: b.id, notes: { booking_id: b.id, customer_id: b.customerId } } });
+        mark('HomeHancer', 'Razorpay order created', order.id);
         await loadScript('https://checkout.razorpay.com/v1/checkout.js');
         const methodFlags = checkout.methods || {};
         const rzp = new window.Razorpay({
@@ -421,14 +471,18 @@
             try {
               const v = await api('/api/razorpay/verify', { method: 'POST', body: resp });
               if (!v.valid) { toast('Signature check failed. Payment NOT marked as paid.', 'bad'); return; }
-              recordPayment(b, { paymentId: resp.razorpay_payment_id, orderId: resp.razorpay_order_id, method: 'razorpay', source: 'razorpay', amount });
+              mark('Razorpay', 'Razorpay confirmed the payment', resp.razorpay_payment_id, 'good');
+              mark('HomeHancer', 'Payment signature verified');
+              mark('HomeHancer', 'Booking marked as paid');
+              recordPayment(b, { paymentId: resp.razorpay_payment_id, orderId: resp.razorpay_order_id, method: 'razorpay', source: 'razorpay', amount, events });
               audit(`Collected ${inr(amount)} on ${b.id} via Razorpay (${resp.razorpay_payment_id})`);
               toast('Payment verified and recorded.', 'good'); onDone && onDone();
             } catch (e) { toast(e.message, 'bad'); }
           },
           modal: { ondismiss: () => toast('Checkout closed before payment.') }
         });
-        rzp.on('payment.failed', (r) => { recordPayment(b, { paymentId: r.error?.metadata?.payment_id || uid('pay'), orderId: order.id, method: r.error?.source || 'unknown', source: 'razorpay', status: 'failed', amount }); toast('Payment failed: ' + (r.error?.description || 'unknown reason'), 'bad'); onDone && onDone(); });
+        rzp.on('payment.failed', (r) => { const e = r.error || {}; mark(e.source === 'customer' ? 'Customer' : 'Razorpay', 'Payment failed: ' + (e.description || 'Reason not returned'), [e.code, e.reason, e.step].filter(Boolean).join(' · '), 'bad'); recordPayment(b, { paymentId: e.metadata?.payment_id || uid('pay'), orderId: order.id, method: 'razorpay', source: 'razorpay', status: 'failed', amount, events, error: { code: e.code, description: e.description, source: e.source, step: e.step, reason: e.reason } }); toast('Payment failed: ' + (r.error?.description || 'unknown reason'), 'bad'); onDone && onDone(); });
+        mark('Razorpay', 'Checkout opened');
         rzp.open();
         return;
       } catch (e) { return toast(e.message, 'bad'); }
@@ -447,17 +501,20 @@
         <div class="rzp-head"><span class="rzp-logo"><img src="/assets/brand/logo-192.png" alt="" width="30" height="30"></span><div><div style="font-weight:700">HomeHancer</div><div style="font-size:12.5px;opacity:.8">${esc(service(b.serviceId).name)} · ${b.id}</div></div><div style="margin-left:auto;font:700 18px var(--font-display)">${inr(amount)}</div></div>
         <div class="rzp-body"><div style="font-size:12.5px;color:#6b7b8d">${esc(cust.phone)} · ${esc(cust.email)}</div>
           ${Object.entries(labels).filter(([k]) => methods[k]).map(([k, [l, s]]) => `<button class="rzp-method" data-m="${k}"><span>${l}<div style="font-weight:400;font-size:12px;color:#6b7b8d">${s}</div></span><span>›</span></button>`).join('')}
+          <div class="field hidden" id="simWhy"><label for="simReason" style="color:#6b7b8d;font-size:12px">If this attempt fails, the reason is</label><select id="simReason">${window.HH_FAILURES.map((f, i) => `<option value="${i}">${esc(f.description)}</option>`).join('')}</select></div>
           <div class="row hidden" id="simResult" style="justify-content:space-between"><button class="btn btn-danger btn-sm" id="simFail">Simulate failure</button><button class="btn btn-primary btn-sm" id="simOk">Simulate success</button></div>
         </div>
         <div class="rzp-foot">Secured by Razorpay · <button class="btn btn-ghost btn-sm" id="simClose" style="height:auto;padding:0;color:#6b7b8d">Cancel</button></div>
       </div></div>`;
     document.body.appendChild(wrap);
     let method = 'upi';
-    wrap.querySelectorAll('[data-m]').forEach(btn => btn.addEventListener('click', () => { method = btn.dataset.m; wrap.querySelectorAll('[data-m]').forEach(x => x.style.borderColor = ''); btn.style.borderColor = '#3395ff'; wrap.querySelector('#simResult').classList.remove('hidden'); }));
+    wrap.querySelectorAll('[data-m]').forEach(btn => btn.addEventListener('click', () => { method = btn.dataset.m; wrap.querySelectorAll('[data-m]').forEach(x => x.style.borderColor = ''); btn.style.borderColor = '#3395ff'; wrap.querySelector('#simResult').classList.remove('hidden'); wrap.querySelector('#simWhy').classList.remove('hidden'); }));
     wrap.querySelector('#simClose').addEventListener('click', () => { wrap.remove(); toast('Checkout closed before payment.'); });
     const finish = (ok) => {
+      const { methods: _, ...failure } = window.HH_FAILURES[wrap.querySelector('#simReason').value];
       wrap.remove();
-      recordPayment(b, { paymentId: uid('pay'), orderId: uid('order'), method, source: 'test', status: ok ? 'captured' : 'failed', amount });
+      const instrument = { upi: cust.name.split(' ')[0].toLowerCase() + '@okhdfcbank', card: 'Visa •••• 1111', netbanking: 'HDFC Bank', wallet: 'Paytm Wallet' }[method] || method.toUpperCase();
+      recordPayment(b, { paymentId: uid('pay'), orderId: uid('order'), method, source: 'test', status: ok ? 'captured' : 'failed', amount, instrument, ...(ok ? {} : { error: failure }) });
       audit(`${ok ? 'Collected' : 'Failed to collect'} ${inr(amount)} on ${b.id} (test checkout)`);
       toast(ok ? `Payment of ${inr(amount)} recorded (test).` : 'Payment failed (test).', ok ? 'good' : 'bad');
       onDone && onDone();
@@ -535,7 +592,7 @@
   window.HH = {
     db, save, reset, session, page, esc, inr, num, date, time, datetime, rel, initials, uid, sameDay, by,
     customer, partner, service, category, badge, icon, shell, toast, modal, drawer, confirmDialog, formData, opt, sw,
-    table, downloadCSV, toCSV, lineChart, barChart, hbars, compactINR, api, server, rzpConfig, audit, collectPayment, refund, assignDialog, refundDialog,
+    table, downloadCSV, toCSV, lineChart, barChart, hbars, compactINR, api, server, rzpConfig, audit, collectPayment, paymentJourney, isSettled, refund, assignDialog, refundDialog,
     params: new URLSearchParams(location.search), SESSION_KEY
   };
 })();

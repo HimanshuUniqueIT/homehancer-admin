@@ -23,7 +23,10 @@ const MIME = {
 };
 
 // Detail routes rewritten to a shared page: /bookings/HH10423 -> public/booking/index.html
-const DYNAMIC = [{ re: /^\/bookings\/[A-Za-z0-9-]+\/?$/, file: 'booking/index.html' }];
+const DYNAMIC = [
+  { re: /^\/bookings\/[A-Za-z0-9-]+\/?$/, file: 'booking/index.html' },
+  { re: /^\/payments\/[A-Za-z0-9_-]+\/?$/, file: 'payment/index.html' }
+];
 
 // ---------- Razorpay config (server-side; secrets never leave this process unmasked) ----------
 const DEFAULT_CONFIG = {

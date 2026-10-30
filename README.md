@@ -28,6 +28,7 @@ Changes you make are saved in your browser's localStorage. Use **avatar menu →
 | `/services` | Categories and services, pricing, GST, commission |
 | `/zones` | Areas served, pincodes, surge pricing, coverage map |
 | `/payments` | Razorpay transactions, refunds, settlement reconciliation |
+| `/payments/pay_xxx` | One payment: journey from customer tap to settlement, failure reason, every attempt, the customer's payment history |
 | `/payouts` | Weekly partner payouts (commission, 1% TDS), pay all |
 | `/razorpay` | **Gateway configuration** (see below) |
 | `/coupons` | Coupons, referral rules, banners |

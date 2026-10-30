@@ -305,3 +305,20 @@ td.right, th.right { text-align: right; }
   .table-tools input[type="search"] { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Payment journey */
+.journey { list-style: none; margin: 0; padding: 18px; display: flex; flex-direction: column; }
+.journey li { display: grid; grid-template-columns: 138px 1fr; gap: 16px; position: relative; padding-bottom: 18px; }
+.journey li:last-child { padding-bottom: 0; }
+.journey-when { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.journey li > div:last-child { position: relative; padding-left: 20px; }
+.journey li > div:last-child::before { content: ''; position: absolute; left: 0; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.journey li > div:last-child::after { content: ''; position: absolute; left: 4.5px; top: 18px; bottom: -18px; width: 1px; background: var(--line); }
+.journey li:last-child > div:last-child::after { display: none; }
+.journey li.good > div:last-child::before { background: var(--good); }
+.journey li.bad > div:last-child::before { background: var(--bad); }
+.journey li.bad .cell-main { color: var(--bad); }
+.journey li.pending > div:last-child::before { background: var(--surface); border: 2px solid var(--muted); box-sizing: border-box; }
+.journey-actor { display: inline-block; margin-top: 4px; font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 0 8px; }
+.row-current td { background: var(--accent-soft); }
+@media (max-width: 900px) { .journey li { grid-template-columns: 1fr; gap: 2px; } }
