@@ -10,7 +10,7 @@ cd ~/homehancer-admin
 npm start            # http://localhost:4300
 ```
 
-Sign in with **admin@homehancer.co.in / admin123**.
+Sign in with **admin@homehancer.co.in / admin123**. Two-factor is on for this account, so type any 6 digits when asked.
 Other demo logins: `neha@homehancer.co.in` (Operations) and `priya@homehancer.co.in` (Finance), same password.
 
 Changes you make are saved in your browser's localStorage. Use **avatar menu → Reset sample data** to start over.
@@ -19,7 +19,7 @@ Changes you make are saved in your browser's localStorage. Use **avatar menu →
 
 | URL | Screen |
 |---|---|
-| `/login` | Sign in |
+| `/login` | Sign in with authenticator code step |
 | `/dashboard` | KPIs, revenue chart, things that need attention, today's schedule |
 | `/bookings` | All bookings: tabs, filters, search, CSV export, new booking with coupon and GST calculation |
 | `/bookings/HH10421` | Booking detail: status steps, assign partner, collect payment, refund, reschedule, cancel with policy, tax invoice |

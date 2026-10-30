@@ -16,6 +16,7 @@
           <div class="callout info">${icon('info')}<div>Sign-in details: <b>admin@homehancer.co.in</b> / <b>admin123</b><br><span class="small muted">Other roles: neha@ (Operations), priya@ (Finance), same password.</span></div></div>
           <div class="field"><label for="email">Email</label><input id="email" type="email" value="admin@homehancer.co.in" autocomplete="username" required></div>
           <div class="field"><label for="password">Password</label><input id="password" type="password" value="admin123" autocomplete="current-password" required></div>
+          <div class="field hidden" id="otpField"><label for="otp">6-digit code from your authenticator app</label><input id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Any 6 digits"></div>
           <label class="check"><input type="checkbox" id="remember" checked> Keep me signed in on this device</label>
           <div id="loginError" class="callout bad hidden"></div>
           <button class="btn btn-primary" type="submit" style="height:42px">Sign in</button>
@@ -24,6 +25,7 @@
       </section>
     </div>`;
   const $ = (id) => document.getElementById(id);
+  let step = 1;
   $('forgot').addEventListener('click', e => { e.preventDefault(); $('loginError').classList.remove('hidden'); $('loginError').className = 'callout info'; $('loginError').textContent = 'Password reset is not set up here. The password is admin123.'; });
   $('loginForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -31,6 +33,8 @@
     const admin = db.admins.find(a => a.email === email && a.status === 'active');
     const err = (m) => { $('loginError').className = 'callout bad'; $('loginError').textContent = m; };
     if (!admin || pass !== 'admin123') return err('Email or password is wrong. Check both and try again.');
+    if (admin.twoFA && step === 1) { step = 2; $('otpField').classList.remove('hidden'); $('loginError').className = 'callout info'; $('loginError').textContent = 'Two-factor login is on for this account. Enter the code to continue.'; $('otp').focus(); $('loginForm').querySelector('button[type=submit]').scrollIntoView({ block: 'nearest' }); return; }
+    if (admin.twoFA && !/^\d{6}$/.test($('otp').value)) return err('Enter the 6-digit code.');
     const s = JSON.stringify({ id: admin.id, name: admin.name, email: admin.email, role: admin.role });
     try { ($('remember').checked ? localStorage : sessionStorage).setItem(HH.SESSION_KEY, s); } catch {}
     admin.lastLogin = new Date().toISOString(); HH.save();
