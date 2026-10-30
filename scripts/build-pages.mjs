@@ -11,14 +11,17 @@ const ROOTED = new RegExp(`(["'\`]|url=)/(${ROUTES})(?=[/?#"'\`]|$)`, 'gm');
 rmSync(OUT, { recursive: true, force: true });
 cpSync('public', OUT, { recursive: true });
 
+const VERSION = (process.env.GITHUB_SHA || String(Date.now())).slice(0, 8);
+// Pages caches files for 10 minutes, so each deploy gets new script and style addresses.
+const stamp = (s) => s.replace(/(\/assets\/(?:css|js)\/[\w/.-]+\.(?:css|js))(?=["'])/g, `$1?v=${VERSION}`);
 const prefix = (s) => s.replace(ROOTED, `$1${BASE}/$2`);
 const walk = (dir) => readdirSync(dir).flatMap(f => { const p = join(dir, f); return statSync(p).isDirectory() ? walk(p) : [p]; });
-for (const file of walk(OUT).filter(f => /\.(html|js|css)$/.test(f))) writeFileSync(file, prefix(readFileSync(file, 'utf8')));
+for (const file of walk(OUT).filter(f => /\.(html|js|css)$/.test(f))) writeFileSync(file, file.endsWith('.html') ? stamp(prefix(readFileSync(file, 'utf8'))) : prefix(readFileSync(file, 'utf8')));
 
 // Pages has no rewrites: /bookings/<id> reaches 404.html, which boots the booking screen for those addresses.
 const head = readFileSync(join(OUT, 'booking/index.html'), 'utf8').match(/<head>[\s\S]*<\/head>/)[0];
 const notFound = readFileSync(join(OUT, '404.html'), 'utf8').match(/<body>([\s\S]*)<\/body>/)[1];
-const scripts = ['data.js', 'app.js', 'pages/booking.js'].map(f => `${BASE}/assets/js/${f}`);
+const scripts = ['data.js', 'app.js', 'pages/booking.js'].map(f => `${BASE}/assets/js/${f}?v=${VERSION}`);
 writeFileSync(join(OUT, '404.html'), `<!DOCTYPE html>
 <html lang="en">
 ${head.replace('<head>', '<head>\n  <meta name="robots" content="noindex">')}
