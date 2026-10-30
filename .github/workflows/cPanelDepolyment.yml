@@ -1,4 +1,4 @@
-name: Deploy to FTP Server
+name: Deploy HomeHancer Admin
 
 on:
   push:
@@ -13,11 +13,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy to FTP Server
+      - name: Deploy to cPanel FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.0
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: /public/
+          server-dir: /
           local-dir: ./
