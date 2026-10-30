@@ -26,7 +26,7 @@
     </div>`;
   const $ = (id) => document.getElementById(id);
   let step = 1;
-  $('forgot').addEventListener('click', e => { e.preventDefault(); $('loginError').classList.remove('hidden'); $('loginError').className = 'callout info'; $('loginError').textContent = 'Reset links aren't set up here. The password is admin123.'; });
+  $('forgot').addEventListener('click', e => { e.preventDefault(); $('loginError').classList.remove('hidden'); $('loginError').className = 'callout info'; $('loginError').textContent = 'Password reset is not set up here. The password is admin123.'; });
   $('loginForm').addEventListener('submit', e => {
     e.preventDefault();
     const email = $('email').value.trim().toLowerCase(), pass = $('password').value;
