@@ -1,0 +1,31 @@
+# Clean URLs on Apache/cPanel, matching what server.js does locally.
+Options -MultiViews -Indexes
+DirectorySlash Off
+DirectoryIndex index.html
+
+<IfModule mod_headers.c>
+  Header set Cache-Control "no-cache"
+</IfModule>
+
+RewriteEngine On
+
+# There is no Node server here, so the panel must see /api as unavailable.
+RewriteRule ^api(/|$) - [R=404,L]
+
+# Old .html addresses redirect to the clean URL.
+RewriteCond %{THE_REQUEST} \s/+(?:public/+)?([^\s?]*?)(?:/index)?\.html[\s?]
+RewriteCond %1 !^404$
+RewriteRule ^ /%1 [R=301,L]
+
+# Detail pages share one HTML file.
+RewriteRule ^bookings/[A-Za-z0-9-]+/?$ booking/index.html [L]
+RewriteRule ^payments/[A-Za-z0-9_-]+/?$ payment/index.html [L]
+
+# /dashboard and /dashboard/ both serve the folder's page.
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteCond %{REQUEST_FILENAME}/index.html -f
+RewriteRule ^(.*?)/?$ $1/index.html [L]
+
+# Anything else that doesn't exist shows the not-found page.
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ 404.html [L]

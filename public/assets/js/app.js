@@ -3,6 +3,27 @@
   const STORE_KEY = 'hh_admin_db';
   const SESSION_KEY = 'hh_admin_session';
 
+  // ---------- Page loader ----------
+  const loader = document.createElement('div');
+  loader.className = 'page-loader';
+  loader.setAttribute('role', 'status');
+  loader.setAttribute('aria-label', 'Loading');
+  loader.innerHTML = '<div class="page-loader-mark"><span class="page-loader-ring"></span><img src="/assets/brand/logo-192.png" alt="" width="34" height="34"></div>';
+  document.body.appendChild(loader);
+  const hideLoader = () => loader.classList.add('hidden-loader');
+  const showLoader = () => loader.classList.remove('hidden-loader');
+  const loaderStart = Date.now();
+  window.addEventListener('load', () => setTimeout(hideLoader, Math.max(0, 500 - (Date.now() - loaderStart))));
+  setTimeout(hideLoader, 2500);
+  window.addEventListener('pageshow', e => { if (e.persisted) hideLoader(); });
+  window.addEventListener('beforeunload', showLoader);
+  document.addEventListener('click', e => {
+    const a = e.target.closest('a[href]');
+    if (!a || e.defaultPrevented || e.ctrlKey || e.metaKey || e.shiftKey || a.target || a.hasAttribute('download')) return;
+    const href = a.getAttribute('href');
+    if (href.startsWith('/') && !href.startsWith('//')) showLoader();
+  });
+
   // ---------- Store ----------
   function load() {
     try {

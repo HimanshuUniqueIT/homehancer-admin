@@ -1,0 +1,4 @@
+# Used when the domain points at the folder above public/: serve the website from public/.
+RewriteEngine On
+RewriteRule ^public/ - [L]
+RewriteRule ^(.*)$ public/$1 [L]
