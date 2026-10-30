@@ -3,7 +3,7 @@
   const view = HH.shell({ title: 'Notifications', subtitle: 'SMS, WhatsApp, email and push messages sent automatically', actions: `<button class="btn" id="campBtn">${icon('send')}Send campaign</button><button class="btn btn-primary" id="addBtn">${icon('plus')}New template</button>` });
   const CH = { sms: 'SMS', whatsapp: 'WhatsApp', email: 'Email', push: 'Push' };
   const VARS = ['{customer_name}', '{booking_id}', '{service_name}', '{slot}', '{partner_name}', '{amount}', '{otp}', '{zone}', '{invoice_no}', '{payment_link}', '{review_link}'];
-  const sample = { customer_name: 'Diya Patel', booking_id: 'HH10421', service_name: 'AC service (split)', slot: '31 Oct, 11 AM', partner_name: 'Imran Shaikh', amount: '736', otp: '4821', zone: 'Satellite', invoice_no: 'HH/2026-27/10421', payment_link: 'rzp.io/l/hh10421', review_link: 'hh.co/r/10421' };
+  const sample = { customer_name: 'Diya Patel', booking_id: 'HH10421', service_name: 'AC service (split)', slot: '26 Apr, 11 AM', partner_name: 'Imran Shaikh', amount: '736', otp: '4821', zone: 'Satellite', invoice_no: 'HH/2026-27/10421', payment_link: 'rzp.io/l/hh10421', review_link: 'hh.co/r/10421' };
   const fill = (s) => s.replace(/\{(\w+)\}/g, (m, k) => sample[k] ?? m);
 
   function render() {

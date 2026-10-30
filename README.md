@@ -13,7 +13,7 @@ npm start            # http://localhost:4300
 Sign in with **admin@homehancer.co.in / admin123**. Two-factor is on for this account, so type any 6 digits when asked.
 Other demo logins: `neha@homehancer.co.in` (Operations) and `priya@homehancer.co.in` (Finance), same password.
 
-Changes you make are saved in your browser's localStorage. Use **avatar menu → Reset demo data** to start over.
+Changes you make are saved in your browser's localStorage. Use **avatar menu → Reset sample data** to start over.
 
 ## Screens (clean URLs, no .html)
 
@@ -53,7 +53,7 @@ Sections on that page: Status and go-live checklist · API keys (test and live) 
    Test UPI: `success@razorpay` · Test card: `4111 1111 1111 1111`, any future expiry, any CVV.
 4. The server checks the signature (`/api/razorpay/verify`) before marking the booking paid.
 
-Without keys, a clearly labelled **demo checkout** opens instead, so the prototype still works offline.
+Without keys, a clearly labelled **test checkout** opens instead, so the prototype still works offline.
 
 ### Webhooks
 
@@ -100,4 +100,4 @@ Keys can also come from environment variables: `RZP_TEST_KEY_ID`, `RZP_TEST_KEY_
 ## GitHub Pages demo
 
 Live at https://himanshuuniqueit.github.io/homehancer-admin/ and deployed on every push to `main` by `.github/workflows/pages.yml`.
-Pages hosts static files only, so there is no Razorpay server there: checkout is the labelled demo, and saving keys, test connection and the webhook tools need `npm start`. Never put real keys on the Pages site.
+Pages hosts static files only, so there is no Razorpay server there: checkout is the labelled test checkout, and saving keys, test connection and the webhook tools need `npm start`. Never put real keys on the Pages site.

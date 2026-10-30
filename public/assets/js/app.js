@@ -132,7 +132,7 @@
                 <button class="user-menu" id="userBtn" aria-label="Account menu"><span class="avatar">${initials(me.name)}</span><span class="small user-name" style="text-align:left;line-height:1.2"><b>${esc(me.name)}</b><br><span class="muted">${esc(me.role)}</span></span></button>
                 <div class="dropdown hidden" id="userMenu">
                   <a href="/admins">My account & roles</a>
-                  <button id="resetBtn">Reset demo data</button>
+                  <button id="resetBtn">Reset sample data</button>
                   <button id="logoutBtn">Sign out</button>
                 </div>
               </div>
@@ -158,7 +158,7 @@
     $('menuBtn').addEventListener('click', e => { e.stopPropagation(); $('sidebar').classList.toggle('open'); });
     $('sidebar').addEventListener('click', e => e.stopPropagation());
     $('logoutBtn').addEventListener('click', () => { try { sessionStorage.removeItem(SESSION_KEY); localStorage.removeItem(SESSION_KEY); } catch {} location.href = '/login'; });
-    $('resetBtn').addEventListener('click', async () => { if (await confirmDialog({ title: 'Reset demo data?', text: 'All bookings, payments and settings you changed in this browser go back to the original sample data.', ok: 'Reset data', danger: true })) reset(); });
+    $('resetBtn').addEventListener('click', async () => { if (await confirmDialog({ title: 'Reset sample data?', text: 'All bookings, payments and settings you changed in this browser go back to the original sample data.', ok: 'Reset data', danger: true })) reset(); });
     $('themeBtn').addEventListener('click', () => {
       const dark = document.documentElement.dataset.theme === 'dark';
       document.documentElement.dataset.theme = dark ? 'light' : 'dark';
@@ -182,7 +182,7 @@
     // Razorpay mode pill
     rzpConfig().then(cfg => {
       const pill = $('modePill');
-      if (!cfg) { pill.textContent = 'Razorpay: demo mode'; pill.className = 'mode-pill badge plain'; pill.title = 'Server not running, checkout is simulated'; return; }
+      if (!cfg) { pill.textContent = 'Razorpay: test mode'; pill.className = 'mode-pill badge plain'; pill.title = 'Server not running, checkout is simulated'; return; }
       const keys = cfg.mode === 'live' ? cfg.live : cfg.test;
       const ready = keys.keyId && keys.hasSecret;
       pill.textContent = cfg.enabled ? (cfg.mode === 'live' ? 'Razorpay LIVE' : ready ? 'Razorpay test mode' : 'Razorpay: add keys') : 'Razorpay off';
@@ -389,10 +389,10 @@
     db.transactions.unshift({ id: paymentId, orderId, bookingId: b.id, customerId: b.customerId, amount, method, status, fee: status === 'failed' ? 0 : fee, tax: status === 'failed' ? 0 : Math.round(fee * .18 * 100) / 100, createdAt: new Date().toISOString(), source, refunds: [] });
     if (status === 'captured') {
       b.payStatus = 'paid'; if (b.payMode !== 'online') b.payMode = 'online';
-      b.timeline.push({ at: new Date().toISOString(), text: `Payment received ${inr(amount)} via Razorpay (${method.toUpperCase()}) · ${paymentId}`, by: source === 'razorpay' ? 'razorpay' : 'demo checkout' });
+      b.timeline.push({ at: new Date().toISOString(), text: `Payment received ${inr(amount)} via Razorpay (${method.toUpperCase()}) · ${paymentId}`, by: source === 'razorpay' ? 'razorpay' : 'test checkout' });
     } else {
       b.payStatus = 'failed';
-      b.timeline.push({ at: new Date().toISOString(), text: `Payment failed via Razorpay · ${paymentId}`, by: source === 'razorpay' ? 'razorpay' : 'demo checkout' });
+      b.timeline.push({ at: new Date().toISOString(), text: `Payment failed via Razorpay · ${paymentId}`, by: source === 'razorpay' ? 'razorpay' : 'test checkout' });
     }
     save();
   }
@@ -442,7 +442,7 @@
     const wrap = document.createElement('div');
     wrap.className = 'overlay';
     wrap.innerHTML = `<div class="stack" style="align-items:center;gap:10px">
-      <div class="badge b-warn plain">Demo checkout. Add Razorpay test keys on the Razorpay page to open the real one.</div>
+      <div class="badge b-warn plain">Test checkout. Add Razorpay test keys on the Razorpay page to open the real one.</div>
       <div class="rzp" role="dialog" aria-label="Razorpay checkout">
         <div class="rzp-head"><span class="rzp-logo"><img src="/assets/brand/logo-192.png" alt="" width="30" height="30"></span><div><div style="font-weight:700">HomeHancer</div><div style="font-size:12.5px;opacity:.8">${esc(service(b.serviceId).name)} · ${b.id}</div></div><div style="margin-left:auto;font:700 18px var(--font-display)">${inr(amount)}</div></div>
         <div class="rzp-body"><div style="font-size:12.5px;color:#6b7b8d">${esc(cust.phone)} · ${esc(cust.email)}</div>
@@ -457,16 +457,16 @@
     wrap.querySelector('#simClose').addEventListener('click', () => { wrap.remove(); toast('Checkout closed before payment.'); });
     const finish = (ok) => {
       wrap.remove();
-      recordPayment(b, { paymentId: uid('pay'), orderId: uid('order'), method, source: 'demo', status: ok ? 'captured' : 'failed', amount });
-      audit(`${ok ? 'Collected' : 'Failed to collect'} ${inr(amount)} on ${b.id} (demo checkout)`);
-      toast(ok ? `Payment of ${inr(amount)} recorded (demo).` : 'Payment failed (demo).', ok ? 'good' : 'bad');
+      recordPayment(b, { paymentId: uid('pay'), orderId: uid('order'), method, source: 'test', status: ok ? 'captured' : 'failed', amount });
+      audit(`${ok ? 'Collected' : 'Failed to collect'} ${inr(amount)} on ${b.id} (test checkout)`);
+      toast(ok ? `Payment of ${inr(amount)} recorded (test).` : 'Payment failed (test).', ok ? 'good' : 'bad');
       onDone && onDone();
     };
     wrap.querySelector('#simOk').addEventListener('click', () => finish(true));
     wrap.querySelector('#simFail').addEventListener('click', () => finish(false));
   }
 
-  // Refund: real Razorpay API for real payments, simulated for demo ones.
+  // Refund: real Razorpay API for real payments, simulated for test ones.
   async function refund(tx, amount, { speed = 'normal', reason = '' } = {}) {
     const refunded = tx.refunds.reduce((s, r) => s + r.amount, 0);
     if (amount <= 0 || amount > tx.amount - refunded + 0.001) throw new Error(`Refund must be between ₹1 and ${inr(tx.amount - refunded, 2)}.`);
@@ -518,7 +518,7 @@
       body: `<div class="form-grid"><div class="field"><label for="rf-amt">Amount (₹)</label><input id="rf-amt" type="number" min="1" step="0.01" max="${left}" value="${left}"><span class="hint">Up to ${inr(left, 2)} left to refund</span></div>
         <div class="field"><label for="rf-speed">Speed</label><select id="rf-speed">${opt([['normal', 'Normal (5–7 days, free)'], ['optimum', 'Instant (Razorpay fee applies)']])}</select></div>
         <div class="field full"><label for="rf-reason">Reason</label><input id="rf-reason" value="Customer complaint"></div></div>
-        ${t.source === 'razorpay' ? `<div class="callout info" style="margin-top:12px">${icon('info')}<div>This calls the Razorpay Refunds API with your stored keys.</div></div>` : `<div class="callout warn" style="margin-top:12px">${icon('info')}<div>Demo payment: the refund is recorded only in this prototype.</div></div>`}`,
+        ${t.source === 'razorpay' ? `<div class="callout info" style="margin-top:12px">${icon('info')}<div>This calls the Razorpay Refunds API with your stored keys.</div></div>` : `<div class="callout warn" style="margin-top:12px">${icon('info')}<div>Test payment: the refund is recorded only in this panel.</div></div>`}`,
       foot: `<button class="btn" data-close>Cancel</button><button class="btn btn-danger" id="rf-ok">Refund</button>`
     });
     m.$('#rf-ok').addEventListener('click', async () => {

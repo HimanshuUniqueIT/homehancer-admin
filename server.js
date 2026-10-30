@@ -252,7 +252,7 @@ async function api(req, res, url) {
       const amount = Math.round(Number(body.amount) || 49900);
       const id = (p) => p + '_' + crypto.randomBytes(7).toString('base64url').slice(0, 14);
       const payment = { id: body.paymentId || id('pay'), entity: 'payment', amount, currency: 'INR', status: ev === 'payment.failed' ? 'failed' : ev === 'payment.authorized' ? 'authorized' : 'captured', order_id: id('order'), method: 'upi', notes: { booking_id: body.bookingId || 'HH10421' } };
-      const payload = { entity: 'event', account_id: 'acc_demo', event: ev, contains: [], created_at: Math.floor(Date.now() / 1000), payload: {} };
+      const payload = { entity: 'event', account_id: 'acc_test', event: ev, contains: [], created_at: Math.floor(Date.now() / 1000), payload: {} };
       if (ev.startsWith('refund.')) { payload.contains = ['refund', 'payment']; payload.payload.refund = { entity: { id: id('rfnd'), amount, payment_id: payment.id, status: ev.split('.')[1], notes: payment.notes } }; payload.payload.payment = { entity: payment }; }
       else if (ev === 'order.paid') { payload.contains = ['payment', 'order']; payload.payload.payment = { entity: payment }; payload.payload.order = { entity: { id: payment.order_id, amount, status: 'paid', notes: payment.notes } }; }
       else { payload.contains = ['payment']; payload.payload.payment = { entity: payment }; }

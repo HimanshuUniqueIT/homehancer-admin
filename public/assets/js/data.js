@@ -1,5 +1,16 @@
-// Seed data for the demo. Deterministic so every fresh load looks the same.
-// Stored in localStorage by app.js; "Reset demo data" in the user menu rebuilds it.
+// Seed data. Deterministic so every fresh load looks the same.
+// Stored in localStorage by app.js; "Reset sample data" in the user menu rebuilds it.
+
+// The panel's calendar is pinned to APP_TODAY, so all records, charts and new entries stay in April 2026.
+(function () {
+  const RealDate = Date, APP_TODAY = new RealDate(2026, 3, 25), r = new RealDate();
+  const offset = Math.round((APP_TODAY - new RealDate(r.getFullYear(), r.getMonth(), r.getDate())) / 864e5) * 864e5;
+  window.Date = class extends RealDate {
+    constructor(...a) { if (a.length) super(...a); else super(RealDate.now() + offset); }
+    static now() { return RealDate.now() + offset; }
+  };
+})();
+
 (function () {
   let seed = 20261030;
   const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
@@ -8,7 +19,8 @@
   const id = (p, n = 14) => p + '_' + Array.from({ length: n }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'[int(0, 55)]).join('');
   const DAY = 864e5;
   const now = new Date(); now.setMinutes(0, 0, 0);
-  const daysAgo = (d, h = int(8, 20)) => { const t = new Date(now.getTime() - d * DAY); t.setHours(h, pick([0, 15, 30, 45]), 0, 0); return t.toISOString(); };
+  const LAST_DAY = new Date(2026, 3, 30, 12);
+  const daysAgo = (d, h = int(8, 20)) => { const t = new Date(now.getTime() - d * DAY); t.setHours(h, pick([0, 15, 30, 45]), 0, 0); return (t > LAST_DAY ? LAST_DAY : t).toISOString(); };
 
   const categories = [
     { id: 'plumbing', name: 'Plumbing', active: true, commission: 18 },
@@ -121,7 +133,7 @@
       const tx = {
         id: id('pay'), orderId: id('order'), bookingId: bId, customerId: cust.id, amount: total, method: pick(methods),
         status: payStatus === 'failed' ? 'failed' : payStatus === 'refunded' ? 'refunded' : 'captured', fee: payStatus === 'failed' ? 0 : fee,
-        tax: payStatus === 'failed' ? 0 : Math.round(fee * .18 * 100) / 100, createdAt: created, source: 'demo', refunds: []
+        tax: payStatus === 'failed' ? 0 : Math.round(fee * .18 * 100) / 100, createdAt: created, source: 'test', refunds: []
       };
       if (payStatus === 'refunded') tx.refunds.push({ id: id('rfnd'), amount: total, status: 'processed', speed: 'normal', at: daysAgo(Math.max(d - 1, 0)), reason: 'Booking cancelled' });
       transactions.push(tx);
@@ -148,7 +160,7 @@
     { code: 'FIRST100', desc: '₹100 off on first booking', type: 'flat', value: 100, minOrder: 299, maxDiscount: 100, usageLimit: 5000, perUser: 1, used: 1843, validFrom: daysAgo(120).slice(0, 10), validTo: daysAgo(-60).slice(0, 10), scope: 'all', active: true },
     { code: 'MONSOON15', desc: '15% off on plumbing & waterproofing', type: 'percent', value: 15, minOrder: 499, maxDiscount: 300, usageLimit: 2000, perUser: 2, used: 612, validFrom: daysAgo(90).slice(0, 10), validTo: daysAgo(10).slice(0, 10), scope: 'plumbing', active: true },
     { code: 'ACCOOL', desc: '₹150 off AC service', type: 'flat', value: 150, minOrder: 599, maxDiscount: 150, usageLimit: 1500, perUser: 1, used: 1102, validFrom: daysAgo(60).slice(0, 10), validTo: daysAgo(-30).slice(0, 10), scope: 'ac', active: true },
-    { code: 'DIWALI250', desc: '₹250 off on renovation above ₹2,999', type: 'flat', value: 250, minOrder: 2999, maxDiscount: 250, usageLimit: 800, perUser: 1, used: 96, validFrom: daysAgo(5).slice(0, 10), validTo: daysAgo(-15).slice(0, 10), scope: 'renovation', active: true },
+    { code: 'SUMMER250', desc: '₹250 off on renovation above ₹2,999', type: 'flat', value: 250, minOrder: 2999, maxDiscount: 250, usageLimit: 800, perUser: 1, used: 96, validFrom: daysAgo(5).slice(0, 10), validTo: daysAgo(-15).slice(0, 10), scope: 'renovation', active: true },
     { code: 'SOCIETY10', desc: '10% off for partner housing societies', type: 'percent', value: 10, minOrder: 0, maxDiscount: 500, usageLimit: 0, perUser: 5, used: 341, validFrom: daysAgo(200).slice(0, 10), validTo: daysAgo(-160).slice(0, 10), scope: 'all', active: false }
   ];
 
@@ -190,7 +202,7 @@
   const blogs = [
     ['5 signs your AC needs servicing before summer', 'ac-servicing-signs', 'published'],
     ['How to prevent water leakage during monsoon in Ahmedabad', 'monsoon-leakage-prevention', 'published'],
-    ['Electrical safety checklist for Diwali lighting', 'diwali-electrical-safety', 'published'],
+    ['Electrical safety checklist for the summer peak', 'summer-electrical-safety', 'published'],
     ['Choosing the right paint finish for Gujarat weather', 'paint-finish-guide', 'draft'],
     ['Modular kitchen hinges: repair or replace?', 'kitchen-hinges-repair', 'scheduled']
   ].map(([title, slug, status], i) => ({ id: 'B' + (i + 1), title, slug, status, author: pick(['HomeHancer Team', 'Neha Shah']), at: daysAgo(i * 9 + 2), metaTitle: title + ' | HomeHancer', metaDesc: 'Expert tips from HomeHancer professionals in Ahmedabad.', body: 'Write the article here…', views: status === 'published' ? int(300, 4200) : 0 }));
@@ -200,7 +212,7 @@
   ].map(([title, slug], i) => ({ id: 'PG' + (i + 1), title, slug, updated: daysAgo(int(3, 90)), metaTitle: title + ' | HomeHancer', metaDesc: '', body: '' }));
 
   const banners = [
-    { id: 'BN1', title: 'Diwali deep-clean & repair week', placement: 'Home hero', active: true, from: daysAgo(5).slice(0, 10), to: daysAgo(-10).slice(0, 10), link: '/services/renovation' },
+    { id: 'BN1', title: 'Summer deep-clean & repair week', placement: 'Home hero', active: true, from: daysAgo(5).slice(0, 10), to: daysAgo(-10).slice(0, 10), link: '/services/renovation' },
     { id: 'BN2', title: 'AC service from ₹599', placement: 'Home carousel', active: true, from: daysAgo(40).slice(0, 10), to: daysAgo(-20).slice(0, 10), link: '/services/ac' },
     { id: 'BN3', title: 'Become a HomeHancer partner', placement: 'Partner app', active: false, from: daysAgo(90).slice(0, 10), to: daysAgo(30).slice(0, 10), link: '/joinUs' }
   ];
@@ -239,7 +251,7 @@
     ['Himanshu Babariya', 'Changed Razorpay checkout methods'],
     ['Karan Joshi', 'Resolved ticket T6103'],
     ['Neha Shah', 'Approved partner KYC for ' + activePartners[6].name],
-    ['Himanshu Babariya', 'Created coupon DIWALI250'],
+    ['Himanshu Babariya', 'Created coupon SUMMER250'],
     ['Priya Desai', 'Marked payout PO5005 as paid']
   ].map(([admin, action], i) => ({ at: daysAgo(Math.floor(i / 2), 18 - i), admin, action, ip: '103.21.' + int(10, 250) + '.' + int(2, 250) }));
 
@@ -260,5 +272,5 @@
     { at: daysAgo(1, 18), text: 'Weekly payouts ready: ' + payouts.filter(p => p.status === 'pending').length + ' partners', href: '/payouts', kind: 'info' }
   ];
 
-  window.HH_SEED = { version: 3, categories, services, zones, customers, partners, bookings, transactions, payouts, coupons, reviews, tickets, blogs, pages, banners, templates, admins, roles, modules, audit, settings, notifications, webhooksLocal: [] };
+  window.HH_SEED = { version: 4, categories, services, zones, customers, partners, bookings, transactions, payouts, coupons, reviews, tickets, blogs, pages, banners, templates, admins, roles, modules, audit, settings, notifications, webhooksLocal: [] };
 })();

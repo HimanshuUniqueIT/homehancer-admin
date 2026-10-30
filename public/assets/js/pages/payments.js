@@ -35,7 +35,7 @@
       rows: () => db.transactions.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       tabs: { items: [['all', 'All'], ['captured', 'Captured'], ['failed', 'Failed'], ['refunds', 'Refunded']], match: (x, k) => k === 'all' || (k === 'refunds' ? x.refunds.length > 0 : x.status === k) },
       search: { placeholder: 'Payment ID, order ID, booking', fields: x => [x.id, x.orderId, x.bookingId, customer(x.customerId).name] },
-      filters: [{ label: 'Method', options: [['upi', 'UPI'], ['card', 'Card'], ['netbanking', 'Netbanking'], ['wallet', 'Wallet'], ['razorpay', 'Razorpay checkout']], value: x => x.method }, { label: 'Source', options: [['razorpay', 'Real Razorpay'], ['demo', 'Demo']], value: x => x.source }],
+      filters: [{ label: 'Method', options: [['upi', 'UPI'], ['card', 'Card'], ['netbanking', 'Netbanking'], ['wallet', 'Wallet'], ['razorpay', 'Razorpay checkout']], value: x => x.method }, { label: 'Source', options: [['razorpay', 'Real Razorpay'], ['test', 'Test']], value: x => x.source }],
       columns: [
         { key: 'id', label: 'Payment', render: x => `<div class="mono">${x.id}</div><div class="cell-sub mono">${x.orderId}</div>` },
         { key: 'booking', label: 'Booking', render: x => `<a href="/bookings/${x.bookingId}">${x.bookingId}</a><div class="cell-sub">${esc(customer(x.customerId).name)}</div>` },
@@ -56,7 +56,7 @@
       title: 'Payment ' + x.id,
       body: `<div class="stack" style="gap:18px">
         <div class="row"><span class="kpi-value">${inr(x.amount)}</span>${badge('tx', x.status)}</div>
-        <dl class="dl"><dt>Payment ID</dt><dd class="mono">${x.id}</dd><dt>Order ID</dt><dd class="mono">${x.orderId}</dd><dt>Booking</dt><dd><a href="/bookings/${x.bookingId}">${x.bookingId}</a></dd><dt>Customer</dt><dd>${esc(customer(x.customerId).name)} · ${esc(customer(x.customerId).phone)}</dd><dt>Method</dt><dd>${x.method.toUpperCase()}</dd><dt>Created</dt><dd>${datetime(x.createdAt)}</dd><dt>Razorpay fee</dt><dd class="num">${inr(x.fee, 2)} + GST ${inr(x.tax, 2)}</dd><dt>Net to you</dt><dd class="num">${inr(x.amount - x.fee - x.tax, 2)}</dd><dt>Source</dt><dd>${x.source === 'razorpay' ? 'Real Razorpay payment' : 'Demo data'}</dd></dl>
+        <dl class="dl"><dt>Payment ID</dt><dd class="mono">${x.id}</dd><dt>Order ID</dt><dd class="mono">${x.orderId}</dd><dt>Booking</dt><dd><a href="/bookings/${x.bookingId}">${x.bookingId}</a></dd><dt>Customer</dt><dd>${esc(customer(x.customerId).name)} · ${esc(customer(x.customerId).phone)}</dd><dt>Method</dt><dd>${x.method.toUpperCase()}</dd><dt>Created</dt><dd>${datetime(x.createdAt)}</dd><dt>Razorpay fee</dt><dd class="num">${inr(x.fee, 2)} + GST ${inr(x.tax, 2)}</dd><dt>Net to you</dt><dd class="num">${inr(x.amount - x.fee - x.tax, 2)}</dd><dt>Source</dt><dd>${x.source === 'razorpay' ? 'Real Razorpay payment' : 'Test payment'}</dd></dl>
         <div><div class="section-title">Refunds</div>${x.refunds.length ? `<div class="card list">${x.refunds.map(r => `<div class="list-item"><div><div class="mono">${r.id}</div><div class="cell-sub">${datetime(r.at)} · ${r.speed === 'optimum' ? 'Instant' : 'Normal'}${r.reason ? ' · ' + esc(r.reason) : ''}</div></div><span class="spacer"></span><span class="num">− ${inr(r.amount, 2)}</span>${badge('generic', r.status)}</div>`).join('')}</div>` : '<p class="muted" style="margin:0">No refunds.</p>'}</div>
         ${x.source === 'razorpay' ? `<a href="https://dashboard.razorpay.com/app/payments/${x.id}" target="_blank" rel="noopener">Open in Razorpay Dashboard ↗</a>` : ''}
       </div>`,

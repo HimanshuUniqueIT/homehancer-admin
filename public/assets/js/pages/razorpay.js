@@ -4,7 +4,6 @@
   const hasServer = await HH.server();
   let cfg = await HH.rzpConfig(true);
   const offline = !cfg;
-  if (offline) cfg = demoConfig();
 
   const SECTIONS = [['status', 'Status'], ['credentials', 'API keys'], ['checkout', 'Checkout'], ['rules', 'Payment rules'], ['webhooks', 'Webhooks'], ['refunds', 'Refunds'], ['route', 'Route & payouts'], ['invoice', 'Invoice & GST'], ['alerts', 'Alerts'], ['tools', 'Test tools']];
   const EVENTS = [
@@ -20,6 +19,8 @@
     ['payout.processed', 'Payout processed', 'RazorpayX: partner payout reached bank'],
     ['payout.failed', 'Payout failed', 'RazorpayX: payout bounced']
   ];
+
+  if (offline) cfg = defaultConfig();
 
   function render() {
     const keys = cfg.mode === 'live' ? cfg.live : cfg.test;
@@ -163,7 +164,7 @@
           <div class="row"><button class="btn" id="vSample">Fill sample</button><button class="btn btn-primary" id="vCheck">Check signature</button><span id="vResult" class="small"></span></div>
         </div></section>
         <section class="card"><div class="card-head"><h2>Try a test payment</h2></div><div class="card-body stack">
-          <p class="small muted" style="margin:0">${ready ? 'Opens the real Razorpay Checkout in <b>' + cfg.mode + ' mode</b>. In test mode use UPI ID <span class="mono">success@razorpay</span> or card <span class="mono">4111 1111 1111 1111</span>, any future expiry and any CVV.' : 'Save Test Key ID and Key Secret above to open the real Razorpay Checkout. Until then the demo checkout opens.'}</p>
+          <p class="small muted" style="margin:0">${ready ? 'Opens the real Razorpay Checkout in <b>' + cfg.mode + ' mode</b>. In test mode use UPI ID <span class="mono">success@razorpay</span> or card <span class="mono">4111 1111 1111 1111</span>, any future expiry and any CVV.' : 'Save Test Key ID and Key Secret above to open the real Razorpay Checkout. Until then the test checkout opens.'}</p>
           <div class="field"><label for="tp-amt">Amount (₹)</label><input id="tp-amt" type="number" min="1" value="1"></div>
           <button class="btn btn-primary" id="tpBtn">${icon('payments')}Open checkout</button>
           <div class="section-title">Server endpoints in this prototype</div>
@@ -214,8 +215,8 @@ GET  /api/razorpay/webhooks    webhook log</div>
     });
     // Signature tool
     $('vSample').addEventListener('click', async () => {
-      $('v-order').value = 'order_' + HH.uid('x', 14).slice(2); $('v-pay').value = 'pay_' + HH.uid('x', 14).slice(2); $('v-secret').value = 'demo_key_secret';
-      $('v-sig').value = await hmac('demo_key_secret', `${$('v-order').value}|${$('v-pay').value}`); $('vResult').textContent = '';
+      $('v-order').value = 'order_' + HH.uid('x', 14).slice(2); $('v-pay').value = 'pay_' + HH.uid('x', 14).slice(2); $('v-secret').value = 'sample_key_secret';
+      $('v-sig').value = await hmac('sample_key_secret', `${$('v-order').value}|${$('v-pay').value}`); $('vResult').textContent = '';
     });
     $('vCheck').addEventListener('click', async () => {
       const [o, p, s, k] = ['v-order', 'v-pay', 'v-sig', 'v-secret'].map(i => $(i).value.trim());
@@ -259,7 +260,7 @@ GET  /api/razorpay/webhooks    webhook log</div>
     return Array.from(new Uint8Array(sig), b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  function demoConfig() {
+  function defaultConfig() {
     return {
       enabled: true, mode: 'test', test: { keyId: '', keySecret: '', hasSecret: false }, live: { keyId: '', keySecret: '', hasSecret: false }, webhookSecret: '', hasWebhookSecret: false, merchantId: '',
       checkout: { businessName: 'HomeHancer', logoUrl: 'https://homehancer.co.in/icons/Icon-192.png', themeColor: '#C8287C', currency: 'INR', methods: { upi: true, card: true, netbanking: true, wallet: true, emi: false, paylater: false }, autoCapture: true, timeoutMinutes: 15, retry: true, prefill: true },

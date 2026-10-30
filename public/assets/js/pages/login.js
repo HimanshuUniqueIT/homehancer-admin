@@ -8,15 +8,15 @@
           <h2>Run every booking, partner and payment in Ahmedabad from one place.</h2>
           <p style="margin:0;max-width:44ch">Today: ${db.bookings.filter(b => HH.sameDay(b.slot, new Date())).length} jobs scheduled, ${db.partners.filter(p => p.online).length} partners online, ${db.zones.filter(z => z.active).length} zones live.</p>
         </div>
-        <div class="small" style="color:#f7c6dd">Payments secured by Razorpay · Demo build</div>
+        <div class="small" style="color:#f7c6dd">Payments secured by Razorpay</div>
       </section>
       <section class="login-form">
         <form id="loginForm" novalidate>
           <div><h1>Sign in</h1><p class="muted" style="margin:4px 0 0">Use your HomeHancer admin account.</p></div>
-          <div class="callout info">${icon('info')}<div>Demo login: <b>admin@homehancer.co.in</b> / <b>admin123</b><br><span class="small muted">Other roles: neha@ (Operations), priya@ (Finance), same password.</span></div></div>
+          <div class="callout info">${icon('info')}<div>Sign-in details: <b>admin@homehancer.co.in</b> / <b>admin123</b><br><span class="small muted">Other roles: neha@ (Operations), priya@ (Finance), same password.</span></div></div>
           <div class="field"><label for="email">Email</label><input id="email" type="email" value="admin@homehancer.co.in" autocomplete="username" required></div>
           <div class="field"><label for="password">Password</label><input id="password" type="password" value="admin123" autocomplete="current-password" required></div>
-          <div class="field hidden" id="otpField"><label for="otp">6-digit code from your authenticator app</label><input id="otp" inputmode="numeric" maxlength="6" placeholder="Any 6 digits in the demo"></div>
+          <div class="field hidden" id="otpField"><label for="otp">6-digit code from your authenticator app</label><input id="otp" inputmode="numeric" maxlength="6" placeholder="Any 6 digits"></div>
           <label class="check"><input type="checkbox" id="remember" checked> Keep me signed in on this device</label>
           <div id="loginError" class="callout bad hidden"></div>
           <button class="btn btn-primary" type="submit" style="height:42px">Sign in</button>
@@ -26,7 +26,7 @@
     </div>`;
   const $ = (id) => document.getElementById(id);
   let step = 1;
-  $('forgot').addEventListener('click', e => { e.preventDefault(); $('loginError').classList.remove('hidden'); $('loginError').className = 'callout info'; $('loginError').textContent = 'In the live system a reset link is emailed. In this demo the password is admin123.'; });
+  $('forgot').addEventListener('click', e => { e.preventDefault(); $('loginError').classList.remove('hidden'); $('loginError').className = 'callout info'; $('loginError').textContent = 'Reset links aren't set up here. The password is admin123.'; });
   $('loginForm').addEventListener('submit', e => {
     e.preventDefault();
     const email = $('email').value.trim().toLowerCase(), pass = $('password').value;
