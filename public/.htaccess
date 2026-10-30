@@ -9,6 +9,9 @@ DirectoryIndex index.html
 
 RewriteEngine On
 
+# The deploy tool's sync file is not for visitors.
+RewriteRule ^\.ftp-deploy - [R=404,L]
+
 # There is no Node server here, so the panel must see /api as unavailable.
 RewriteRule ^api(/|$) - [R=404,L]
 
