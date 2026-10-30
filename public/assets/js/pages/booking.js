@@ -1,6 +1,6 @@
 (function () {
   const { db, esc, inr, badge, customer, service, partner, category, date, time, datetime, opt, icon } = HH;
-  const id = HH.params.get('id') || location.pathname.split('/').filter(Boolean)[1];
+  const id = HH.params.get('id') || location.pathname.split('/').filter(Boolean).pop();
   const b = HH.by(db.bookings, id);
   if (!b) {
     HH.shell({ title: 'Booking not found', crumbs: '<a href="/bookings">Bookings</a>' }).innerHTML = `<div class="card empty">No booking has the ID “${esc(id)}”. <a href="/bookings">Back to bookings</a></div>`;

@@ -96,3 +96,8 @@ Keys can also come from environment variables: `RZP_TEST_KEY_ID`, `RZP_TEST_KEY_
 - Add real authentication (hashed passwords, httpOnly session cookies, TOTP two-factor) and enforce role permissions on the server.
 - Record payments from the `payment.captured` / `order.paid` webhooks as the source of truth.
 - Serve over HTTPS. For static hosting of `public/`, add a rewrite of `/bookings/*` to `/booking/index.html`.
+
+## GitHub Pages demo
+
+Live at https://himanshuuniqueit.github.io/homehancer-admin/ and deployed on every push to `main` by `.github/workflows/pages.yml`.
+Pages hosts static files only, so there is no Razorpay server there: checkout is the labelled demo, and saving keys, test connection and the webhook tools need `npm start`. Never put real keys on the Pages site.
